@@ -1,0 +1,65 @@
+---
+title: "Column Orientation"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: yeti
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(plotly)
+source('report.r')
+```
+
+Dashboard
+=======================================================================
+Data provided by [Houston Recovery Center](https://houstonrecoverycenter.org/)
+
+Row
+-----------------------------------------------------------------------
+
+# what drugs, in what mix?
+```{r, echo=FALSE, messages=FALSE, warnings=FALSE, results='hide'}
+library(corrplot)
+cor(a[, c("alcohol", 
+          "thc", 
+          "cocaine", 
+          "bzo", 
+          "meth", 
+          "kush", 
+          "is_male")]) %>% 
+  corrplot(method="circle", diag=F, outline=T)
+```
+
+
+# drugs by age
+```{r}
+
+drugs_by_age <- a %>% 
+  group_by(age) %>%
+  summarize(p_alc = sum(alcohol)/n(), 
+            p_kush = sum(kush)/n(),
+            tot_visits = n()/nrow(a))
+
+ggplot(drugs_by_age) + 
+  geom_line(aes(x=age, y=p_alc), color='red') +
+  geom_line(aes(x=age, y=p_kush), color='blue') +
+  geom_line(aes(x=age, y=tot_visits), color='black')
+  ylab('percent of total visits')
+```
+
+# officers over time
+```{r}
+
+officer_visits <- a %>% 
+  filter(officer_badge != "") %>%
+  mutate(timestamp = mdy_hm(timestamp)) %>%
+  mutate(counter = 1.0) %>%
+  group_by(officer_badge) %>%
+  arrange(mdy_hm(timestamp)) %>%
+  mutate(tot_visits=cumsum(counter))
+
+p <- ggplot(officer_visits) + 
+  geom_line(aes(x=timestamp, y=tot_visits, group=officer_badge), alpha=0.2)
+ggplotly(p)
+```
